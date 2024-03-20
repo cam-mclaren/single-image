@@ -9,7 +9,7 @@ LINKER_FLAGS = -lm -lmpfr -lgmp
 #Compilation flags 
 
 COMPILER_FLAGS = 
-TARGET_FILES = main.c
+TARGET_FILES = main.c my_utils.c
 
 
 OBJECT_FILES = $(TARGET_FILES:%.c=%.o)
