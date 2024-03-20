@@ -9,14 +9,14 @@ LINKER_FLAGS = -lm -lmpfr -lgmp
 #Compilation flags 
 
 COMPILER_FLAGS = 
-TARGET_FILES = main.c my_utils.c
+TARGET_FILES =  my_utils.c image_gen.c main.c
 
 
 OBJECT_FILES = $(TARGET_FILES:%.c=%.o)
 
 
 main.out: $(OBJECT_FILES) 
-	$(COMPILER)  $(OBJECT_FILES)  $(LINKER_FLAGS) -o main.out
+	$(COMPILER) $(OBJECT_FILES) $(LINKER_FLAGS) -o main.out
 
 compile:
 	$(COMPILER) $(COMPILER_FLAGS) -c $(TARGET_FILES)
