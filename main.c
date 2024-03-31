@@ -20,11 +20,7 @@
 #define MY_PRECISION 665
 #define THREAD_NUMBER 4
 
-// Instead maybe it reads targets from a file.
-
 int main(int argc, char **argv) {
-
-  // Read from file the coordinates
 
   // Wall clock time
   struct timeval tv;
