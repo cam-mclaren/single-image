@@ -18,7 +18,7 @@
 #include <time.h>
 
 #define MY_PRECISION 665
-#define THREAD_NUMBER 4
+#define THREAD_NUMBER 8
 
 int main(int argc, char **argv) {
 

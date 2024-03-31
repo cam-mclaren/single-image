@@ -4,7 +4,7 @@ COMPILER = gcc
 
 # Linker Flags 
 
-LINKER_FLAGS = -lm -lmpfr -lgmp 
+LINKER_FLAGS = -lm -lpthread -lmpfr -lgmp 
 
 #Compilation flags 
 
