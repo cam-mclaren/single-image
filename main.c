@@ -29,14 +29,14 @@ int main(int argc, char **argv) {
   // Times main()
   clock_t begin = clock();
 
-  mpfr_t x_coordinate, y_coordinate, width;
-  mpfr_init2(x_coordinate, MY_PRECISION);
-  mpfr_init2(y_coordinate, MY_PRECISION);
+  mpfr_t top, left, width;
+  mpfr_init2(top, MY_PRECISION);
+  mpfr_init2(left, MY_PRECISION);
   mpfr_init2(width, MY_PRECISION);
   int read_status;
 
-  mpfr_strtofr(x_coordinate, *(argv + 1), NULL, 10, MPFR_RNDD);
-  mpfr_strtofr(y_coordinate, *(argv + 2), NULL, 10, MPFR_RNDD);
+  mpfr_strtofr(left, *(argv + 1), NULL, 10, MPFR_RNDD);
+  mpfr_strtofr(top, *(argv + 2), NULL, 10, MPFR_RNDD);
   mpfr_strtofr(width, *(argv + 3), NULL, 10, MPFR_RNDD);
 
   // Load the coefficients and nodes for the colouring spline//
@@ -85,37 +85,31 @@ int main(int argc, char **argv) {
   mpfr_div_si(aspect_ratio, aspect_ratio, x_pixels, MPFR_RNDD);
 
   // delare and initialse variables for boundarys and nudges
-  mpfr_t left, top, hoz_nudge, ver_nudge, half_height;
-  mpfr_init2(left, MY_PRECISION);
-  mpfr_init2(top, MY_PRECISION);
-  mpfr_init2(hoz_nudge, MY_PRECISION);
-  mpfr_init2(ver_nudge, MY_PRECISION);
+  mpfr_t nudge, half_height;
+  mpfr_init2(nudge, MY_PRECISION);
   mpfr_init2(half_height, MY_PRECISION);
 
-  mpfr_div_ui(hoz_nudge, width, 2,
-              MPFR_RNDD); // use hoz nudge to store half width
-  mpfr_sub(left, x_coordinate, hoz_nudge, MPFR_RNDD); // left calculated
-  mpfr_div_si(hoz_nudge, width, (x_pixels - 1),
+  mpfr_div_si(nudge, width, (x_pixels),
               MPFR_RNDD); // Now calculate the horizontal nudge
 
   mpfr_mul(half_height, aspect_ratio, width, MPFR_RNDD); // height calculated
-  mpfr_div_si(ver_nudge, half_height, (y_pixels - 1),
-              MPFR_RNDD); // vertical nudge calculated
   mpfr_div_si(half_height, half_height, 2, MPFR_RNDD);
-  mpfr_add(top, y_coordinate, half_height,
-           MPFR_RNDD); // Top boundary calculated
 
   // Populate y values used. //Array is backwards atm :'-(
 
   printf("top is:\n");
   mpfr_fprintf(stdout, "%5.50Rf\n", top);
+
+  printf("nudge is:\n");
+  mpfr_fprintf(stdout, "%5.50Rf\n", nudge);
+
   int index;
   mpfr_t y_val, y_increment;
   mpfr_t y_values[y_pixels];
   mpfr_init2(y_val, MY_PRECISION);
   mpfr_init2(y_increment, MY_PRECISION);
   for (index = y_pixels - 1; index >= 0; index--) {
-    mpfr_mul_si(y_increment, ver_nudge, (y_pixels - 1 - index), MPFR_RNDD);
+    mpfr_mul_si(y_increment, nudge, (y_pixels - 1 - index), MPFR_RNDD);
     mpfr_sub(y_val, top, y_increment, MPFR_RNDD);
     mpfr_init2(y_values[index], MY_PRECISION);
     mpfr_set(y_values[index], y_val, MPFR_RNDD);
@@ -127,7 +121,7 @@ int main(int argc, char **argv) {
   mpfr_init2(x_val, MY_PRECISION);
   mpfr_init2(x_increment, MY_PRECISION);
   for (index = 0; index < x_pixels; index++) {
-    mpfr_mul_si(x_increment, hoz_nudge, index, MPFR_RNDD);
+    mpfr_mul_si(x_increment, nudge, index, MPFR_RNDD);
     mpfr_add(x_val, left, x_increment, MPFR_RNDD);
     mpfr_init2(x_values[index], MY_PRECISION);
     mpfr_set(x_values[index], x_val, MPFR_RNDD);
@@ -136,8 +130,6 @@ int main(int argc, char **argv) {
 
   mpfr_clear(half_height);
   mpfr_clear(aspect_ratio);
-  mpfr_clear(x_coordinate);
-  mpfr_clear(y_coordinate);
   mpfr_clear(width);
 
   printf("okay thus far\n");
@@ -202,10 +194,9 @@ int main(int argc, char **argv) {
 
   stbi_write_jpg("image.jpg", x_pixels, y_pixels, 3, image_data, 100);
   free((void *)image_data);
-  mpfr_clear(hoz_nudge);
   mpfr_clear(left);
   mpfr_clear(top);
-  mpfr_clear(ver_nudge);
+  mpfr_clear(nudge);
   mpfr_free_cache();
   mtx_destroy(&mutex);
 

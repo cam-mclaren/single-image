@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
 
   mpfr_t y_corner;
   mpfr_init2(y_corner, MY_PRECISION);
-  mpfr_sub(y_corner, y_centre, half_height, MPFR_RNDD);
+  mpfr_add(y_corner, y_centre, half_height, MPFR_RNDD);
 
   mpfr_t x_corner;
   mpfr_init2(x_corner, MY_PRECISION);
