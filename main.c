@@ -20,24 +20,62 @@
 #define MY_PRECISION 665
 #define THREAD_NUMBER 8
 
-int main(int argc, char **argv) {
+// some documentation
+int make_image(int x_pixels, int y_pixels, int thread_count, long int precision,
+               mpfr_t left, mpfr_t top, mpfr_t width,
+               unsigned char *image_data) {
 
-  // Wall clock time
-  struct timeval tv;
-  struct timezone tz;
-  gettimeofday(&tv, &tz);
-  // Times main()
-  clock_t begin = clock();
+  // calculate nudge size
+  mpfr_t nudge;
+  mpfr_init2(nudge, MY_PRECISION);
 
-  mpfr_t top, left, width;
-  mpfr_init2(top, MY_PRECISION);
-  mpfr_init2(left, MY_PRECISION);
-  mpfr_init2(width, MY_PRECISION);
-  int read_status;
+  mpfr_div_si(nudge, width, x_pixels,
+              MPFR_RNDD); // calculate the width of each pixel
 
-  mpfr_strtofr(left, *(argv + 1), NULL, 10, MPFR_RNDD);
-  mpfr_strtofr(top, *(argv + 2), NULL, 10, MPFR_RNDD);
-  mpfr_strtofr(width, *(argv + 3), NULL, 10, MPFR_RNDD);
+  int index;
+
+  // Populate y values
+  mpfr_t y_val;
+  mpfr_t y_values[y_pixels];
+  mpfr_init2(y_val, MY_PRECISION);
+  mpfr_set(y_val, top, MPFR_RNDD);
+  for (index = y_pixels - 1; index >= 0; index--) {
+    mpfr_init2(y_values[index], MY_PRECISION);
+    mpfr_set(y_values[index], y_val, MPFR_RNDD);
+    mpfr_sub(y_val, y_val, nudge, MPFR_RNDD);
+  }
+
+  // Populate x values
+  mpfr_t x_val;
+  mpfr_t x_values[x_pixels];
+  mpfr_init2(x_val, MY_PRECISION);
+  mpfr_set(x_val, left, MPFR_RNDD);
+  for (index = 0; index < x_pixels; index++) {
+    mpfr_init2(x_values[index], MY_PRECISION);
+    mpfr_set(x_values[index], x_val, MPFR_RNDD);
+    mpfr_add(x_val, left, nudge, MPFR_RNDD);
+  }
+
+  mpfr_clear(nudge);
+  mpfr_clear(y_val);
+  mpfr_clear(x_val);
+
+  // declare and initialise mutex
+  mtx_t mutex;
+  if (mtx_init(&mutex, mtx_plain) != thrd_success) {
+    fprintf(stderr, "Error initialising mutex (for image) on line %d\n",
+            __LINE__);
+    return -1;
+  }
+  fprintf(stdout, "Mutex (for image) successfully initialised at line %d\n",
+          __LINE__);
+
+  thrd_t threads[thread_count];
+
+  // define integer representing number of rows in image processed. Cast this as
+  // a void pointer.
+  int rows_processed = 0;
+  void *thread_argument = (void *)&rows_processed;
 
   // Load the coefficients and nodes for the colouring spline//
   int coefficent_number = count_doubles_in_file(
@@ -58,88 +96,6 @@ int main(int argc, char **argv) {
       blue_coefficients);
   fill_double_array_from_file("./interpolation/colour_parameters/nodes",
                               coefficent_number, nodes);
-
-  // declare and initialise mutex
-  mtx_t mutex;
-  if (mtx_init(&mutex, mtx_plain) != thrd_success) {
-    fprintf(stderr, "Error initialising mutex (for image) on line %d\n",
-            __LINE__);
-    return -1;
-  }
-  fprintf(stdout, "Mutex (for image) successfully initialised at line %d\n",
-          __LINE__);
-
-  // define integer representing number of rows in image processed. Cast this as
-  // a void pointer.
-  int rows_processed = 0;
-  void *thread_argument = (void *)&rows_processed;
-
-  // resolution
-  int x_pixels = 1280;
-  int y_pixels = 720;
-
-  // aspect ratio
-  mpfr_t aspect_ratio;
-  mpfr_init2(aspect_ratio, MY_PRECISION);
-  mpfr_set_si(aspect_ratio, y_pixels, MPFR_RNDD);
-  mpfr_div_si(aspect_ratio, aspect_ratio, x_pixels, MPFR_RNDD);
-
-  // delare and initialse variables for boundarys and nudges
-  mpfr_t nudge, half_height;
-  mpfr_init2(nudge, MY_PRECISION);
-  mpfr_init2(half_height, MY_PRECISION);
-
-  mpfr_div_si(nudge, width, (x_pixels),
-              MPFR_RNDD); // Now calculate the horizontal nudge
-
-  mpfr_mul(half_height, aspect_ratio, width, MPFR_RNDD); // height calculated
-  mpfr_div_si(half_height, half_height, 2, MPFR_RNDD);
-
-  // Populate y values used. //Array is backwards atm :'-(
-
-  printf("top is:\n");
-  mpfr_fprintf(stdout, "%5.50Rf\n", top);
-
-  printf("nudge is:\n");
-  mpfr_fprintf(stdout, "%5.50Rf\n", nudge);
-
-  int index;
-  mpfr_t y_val, y_increment;
-  mpfr_t y_values[y_pixels];
-  mpfr_init2(y_val, MY_PRECISION);
-  mpfr_init2(y_increment, MY_PRECISION);
-  for (index = y_pixels - 1; index >= 0; index--) {
-    mpfr_mul_si(y_increment, nudge, (y_pixels - 1 - index), MPFR_RNDD);
-    mpfr_sub(y_val, top, y_increment, MPFR_RNDD);
-    mpfr_init2(y_values[index], MY_PRECISION);
-    mpfr_set(y_values[index], y_val, MPFR_RNDD);
-    // mpfr_fprintf(stdout,"%5.50Rf\n",y_values[index]);
-  }
-  // Populate x values used. (Not yet utilised)
-  mpfr_t x_val, x_increment;
-  mpfr_t x_values[x_pixels];
-  mpfr_init2(x_val, MY_PRECISION);
-  mpfr_init2(x_increment, MY_PRECISION);
-  for (index = 0; index < x_pixels; index++) {
-    mpfr_mul_si(x_increment, nudge, index, MPFR_RNDD);
-    mpfr_add(x_val, left, x_increment, MPFR_RNDD);
-    mpfr_init2(x_values[index], MY_PRECISION);
-    mpfr_set(x_values[index], x_val, MPFR_RNDD);
-    // mpfr_fprintf(stdout,"%5.50Rf\n",x_values[index]);
-  }
-
-  mpfr_clear(half_height);
-  mpfr_clear(aspect_ratio);
-  mpfr_clear(width);
-
-  printf("okay thus far\n");
-
-  // define image_data array
-  unsigned char *image_data =
-      calloc(y_pixels * x_pixels * 3, sizeof(unsigned char));
-
-  thrd_t threads[THREAD_NUMBER];
-  long int precision = MY_PRECISION;
 
   struct image_params
       thread_parameters; // thread_parameters is basically how the main function
@@ -192,13 +148,49 @@ int main(int argc, char **argv) {
     printf("Thread %d joined.\n", thread_index);
   }
 
+  mtx_destroy(&mutex);
+
+  return 0;
+}
+
+int main(int argc, char **argv) {
+
+  // Wall clock time
+  struct timeval tv;
+  struct timezone tz;
+  gettimeofday(&tv, &tz);
+  // Times main()
+  clock_t begin = clock();
+
+  mpfr_t top, left, width;
+  mpfr_init2(top, MY_PRECISION);
+  mpfr_init2(left, MY_PRECISION);
+  mpfr_init2(width, MY_PRECISION);
+  int read_status;
+
+  mpfr_strtofr(left, *(argv + 1), NULL, 10, MPFR_RNDD);
+  mpfr_strtofr(top, *(argv + 2), NULL, 10, MPFR_RNDD);
+  mpfr_strtofr(width, *(argv + 3), NULL, 10, MPFR_RNDD);
+
+  // resolution
+  int x_pixels = 1280;
+  int y_pixels = 720;
+
+  // define image_data array
+  unsigned char *image_data =
+      calloc(y_pixels * x_pixels * 3, sizeof(unsigned char));
+
+  make_image(x_pixels, y_pixels, THREAD_NUMBER, MY_PRECISION, left, top, width,
+             image_data);
+
+  mpfr_clear(width);
+
   stbi_write_jpg("image.jpg", x_pixels, y_pixels, 3, image_data, 100);
+
   free((void *)image_data);
   mpfr_clear(left);
   mpfr_clear(top);
-  mpfr_clear(nudge);
   mpfr_free_cache();
-  mtx_destroy(&mutex);
 
   clock_t end = clock();
 
