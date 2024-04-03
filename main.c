@@ -53,7 +53,7 @@ int make_image(int x_pixels, int y_pixels, int thread_count, long int precision,
   for (index = 0; index < x_pixels; index++) {
     mpfr_init2(x_values[index], MY_PRECISION);
     mpfr_set(x_values[index], x_val, MPFR_RNDD);
-    mpfr_add(x_val, left, nudge, MPFR_RNDD);
+    mpfr_add(x_val, x_val, nudge, MPFR_RNDD);
   }
 
   mpfr_clear(nudge);
