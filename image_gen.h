@@ -1,9 +1,10 @@
-#include <gmp.h>
-#include <mpfr.h>
-#include <threads.h>
 #ifndef IMAGE_GEN_H
 #define IMAGE_GEN_H
 
+#include "my_utils.h"
+#include <gmp.h>
+#include <mpfr.h>
+#include <threads.h>
 // Context for the threads
 typedef struct image_params {
   int y_pixels;
@@ -33,5 +34,12 @@ typedef struct thrd_awrp {
 // calculating. When the mutex locked integer reaches the number of columns in
 // the image the threads begin to terminate.
 int worker_function(void *wrapper_arg);
+
+// The fuction spawns `thread_count` number of threads to caculate the escape
+// times for the points on the complex plane implied by x_pixels, y_pixels,
+// left, top and width. `image_data` has length x_pixels*y_pixels*3
+int make_image(int x_pixels, int y_pixels, int thread_count, long int precision,
+               mpfr_t left, mpfr_t top, mpfr_t width,
+               unsigned char *image_data);
 
 #endif
