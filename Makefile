@@ -22,7 +22,10 @@ compile:
 	$(COMPILER) $(COMPILER_FLAGS) -c $(TARGET_FILES)
 
 runmain: main.out
-	./main.out $$(cat centre_image_params.txt | awk '{printf "%50.50s ", $$0}')
+	JSON_ARGS=$$(cat centre_image_params.json); ./main.out \
+						$$(echo $$JSON_ARGS | jq .x | sed -e 's/"//g' ) \
+						$$(echo $$JSON_ARGS | jq .y | sed -e 's/"//g' ) \
+						$$(echo $$JSON_ARGS | jq .width | sed -e 's/"//g' )
 
 clean: 
 	rm -rf *.o *.out
