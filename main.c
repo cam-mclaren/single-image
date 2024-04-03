@@ -183,13 +183,12 @@ int main(int argc, char **argv) {
   make_image(x_pixels, y_pixels, THREAD_NUMBER, MY_PRECISION, left, top, width,
              image_data);
 
-  mpfr_clear(width);
-
   stbi_write_jpg("image.jpg", x_pixels, y_pixels, 3, image_data, 100);
 
   free((void *)image_data);
   mpfr_clear(left);
   mpfr_clear(top);
+  mpfr_clear(width);
   mpfr_free_cache();
 
   clock_t end = clock();
@@ -204,6 +203,5 @@ int main(int argc, char **argv) {
   printf("Wall clock time elapsed is %lf seconds.\n",
          (double)(tv2.tv_sec - tv.tv_sec) +
              (double)(tv2.tv_usec - tv.tv_usec) / 1000000);
-
   return 0;
 }
