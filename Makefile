@@ -34,7 +34,11 @@ maketemp:
 	$(COMPILER)  temp_math.c  $(LINKER_FLAGS) -o test.out
 
 runtemp: test.out
-	./test.out $$(cat image_parameters.txt | awk '{printf "%50.50s ", $$0}')
+	JSON_ARGS=$$(cat image_parameters.json); \
+						./test.out \
+						$$(echo $$JSON_ARGS | jq .x | sed -e 's/"//g') \
+						$$(echo $$JSON_ARGS | jq .y | sed -e 's/"//g') \
+						$$(echo $$JSON_ARGS | jq .width | sed -e 's/"//g') 
 
 ######################################## Will remove above later. 
 ######################################## Only need these file to create the centre_image_params.txt
