@@ -58,7 +58,7 @@ int worker_function(void *wrapper_arg /* void pointer to pointer to struct*/) {
     int j;
     for (j = 0; j < args->x_pixels; j++) {
 
-      mpfr_fprintf(stdout, "x value: %5.50Rf\n", args->x_array[j]);
+      // mpfr_fprintf(stdout, "x value: %5.50Rf\n", args->x_array[j]);
       mpfr_set(current_x, args->x_array[j], MPFR_RNDD);
       mpfr_set(real_component, current_x, MPFR_RNDD); //  Initialise x value
       mpfr_set(imaginary_component, current_y, MPFR_RNDD); // Initialise y value
