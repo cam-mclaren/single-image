@@ -23,9 +23,9 @@ compile:
 
 runmain: main.out
 	JSON_ARGS=$$(cat centre_image_params.json); ./main.out \
-						$$(echo $$JSON_ARGS | jq .x | sed -e 's/"//g' ) \
-						$$(echo $$JSON_ARGS | jq .y | sed -e 's/"//g' ) \
-						$$(echo $$JSON_ARGS | jq .width | sed -e 's/"//g' )
+						$$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .x | sed -e 's/"//g' )) \
+						$$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .y | sed -e 's/"//g' ))\
+						$$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .width | sed -e 's/"//g' ))
 
 clean: 
 	rm -rf *.o *.out
@@ -39,9 +39,9 @@ maketemp:
 runtemp: test.out
 	JSON_ARGS=$$(cat image_parameters.json); \
 						./test.out \
-						$$(echo $$JSON_ARGS | jq .x | sed -e 's/"//g') \
-						$$(echo $$JSON_ARGS | jq .y | sed -e 's/"//g') \
-						$$(echo $$JSON_ARGS | jq .width | sed -e 's/"//g') 
+						$$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .x | sed -e 's/"//g')) \
+						$$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .y | sed -e 's/"//g')) \
+						$$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .width | sed -e 's/"//g')) 
 
 ######################################## Will remove above later. 
 ######################################## Only need these file to create the centre_image_params.txt
