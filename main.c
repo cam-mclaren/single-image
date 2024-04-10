@@ -12,6 +12,8 @@
 #include "image_gen.h"
 // #include "my_utils.h"
 
+#include <unistd.h>
+
 #include <threads.h>
 
 #include <sys/time.h>
@@ -28,6 +30,73 @@ int main(int argc, char **argv) {
   gettimeofday(&tv, &tz);
   // Times main()
   clock_t begin = clock();
+
+  // put ':' in the starting of the
+  // string so that program can
+  // distinguish between '?' and ':'
+  int opt;
+  int array_len = 70;
+  char x_arg[array_len];
+  long unsigned int x_arg_len;
+  char y_arg[array_len];
+  long unsigned int y_arg_len;
+  char width_arg[array_len];
+  long unsigned int width_arg_len;
+  while ((opt = getopt(argc, argv, ":sx:y:w:")) != -1) {
+    switch (opt) {
+    case 's':
+      printf("option : %c\n", opt);
+      printf("Running in server mode\n");
+      break;
+    case 'x':
+      printf("x argument : %s\n", optarg);
+      x_arg_len = strlen(optarg);
+      if (x_arg_len > 59) {
+        printf("Error. x_arg is too long\n");
+        return 208;
+      } else {
+        strcpy(x_arg, optarg);
+        zero_fill(x_arg_len, array_len, x_arg);
+      }
+      break;
+    case 'y':
+      printf("y argument : %s\n", optarg);
+      y_arg_len = strlen(optarg);
+      if (y_arg_len > 59) {
+        printf("Error. y_arg is too long\n");
+        return 208;
+      } else {
+        strcpy(y_arg, optarg);
+        zero_fill(y_arg_len, array_len, y_arg);
+      }
+      break;
+    case 'w':
+      printf("width argument : %s\n", optarg);
+      width_arg_len = strlen(optarg);
+      if (width_arg_len > 59) {
+        printf("Error. width_arg is too long\n");
+        return 208;
+      } else {
+        strcpy(width_arg, optarg);
+        zero_fill(width_arg_len, array_len, width_arg);
+      }
+      break;
+    case ':':
+      printf("option needs a value\n");
+      break;
+    case '?':
+      printf("unknown option : %c\n", optopt);
+      break;
+    }
+  }
+
+  // optind is for the extra arguments
+  // which are not parsed
+  for (; optind < argc; optind++) {
+    printf("extra arguments : %s\n", argv[optind]);
+  }
+
+  printf("%s\n%s\n%s\n", x_arg, y_arg, width_arg);
 
   mpfr_t top, left, width;
   mpfr_init2(top, MY_PRECISION);
@@ -47,8 +116,9 @@ int main(int argc, char **argv) {
   unsigned char *image_data =
       calloc(y_pixels * x_pixels * 3, sizeof(unsigned char));
 
-  make_image(x_pixels, y_pixels, THREAD_NUMBER, MY_PRECISION, left, top, width,
-             image_data);
+  //  make_image(x_pixels, y_pixels, THREAD_NUMBER, MY_PRECISION, left, top,
+  //  width,
+  //             image_data);
 
   stbi_write_jpg("image.jpg", x_pixels, y_pixels, 3, image_data, 100);
 
