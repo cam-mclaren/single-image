@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -35,6 +36,7 @@ int main(int argc, char **argv) {
   // string so that program can
   // distinguish between '?' and ':'
   int opt;
+  bool is_server = false;
   int array_len = 70;
   char x_arg[array_len];
   long unsigned int x_arg_len;
@@ -46,6 +48,7 @@ int main(int argc, char **argv) {
     switch (opt) {
     case 's':
       printf("option : %c\n", opt);
+      is_server = true;
       printf("Running in server mode\n");
       break;
     case 'x':
@@ -102,11 +105,10 @@ int main(int argc, char **argv) {
   mpfr_init2(top, MY_PRECISION);
   mpfr_init2(left, MY_PRECISION);
   mpfr_init2(width, MY_PRECISION);
-  int read_status;
 
-  mpfr_strtofr(left, *(argv + 1), NULL, 10, MPFR_RNDD);
-  mpfr_strtofr(top, *(argv + 2), NULL, 10, MPFR_RNDD);
-  mpfr_strtofr(width, *(argv + 3), NULL, 10, MPFR_RNDD);
+  mpfr_strtofr(left, x_arg, NULL, 10, MPFR_RNDD);
+  mpfr_strtofr(top, y_arg, NULL, 10, MPFR_RNDD);
+  mpfr_strtofr(width, width_arg, NULL, 10, MPFR_RNDD);
 
   // resolution
   int x_pixels = 1280;
