@@ -23,9 +23,9 @@ compile:
 
 runmain: main.out
 	JSON_ARGS=$$(cat centre_image_params.json); ./main.out \
-						$$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .x | sed -e 's/"//g' )) \
-						$$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .y | sed -e 's/"//g' ))\
-						$$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .width | sed -e 's/"//g' ))
+						-x $$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .x | sed -e 's/"//g' )) \
+						-y $$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .y | sed -e 's/"//g' ))\
+						-w $$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .width | sed -e 's/"//g' ))
 
 clean: 
 	rm -rf *.o *.out
