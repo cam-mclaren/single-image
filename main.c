@@ -118,9 +118,8 @@ int main(int argc, char **argv) {
   unsigned char *image_data =
       calloc(y_pixels * x_pixels * 3, sizeof(unsigned char));
 
-  //  make_image(x_pixels, y_pixels, THREAD_NUMBER, MY_PRECISION, left, top,
-  //  width,
-  //             image_data);
+  make_image(x_pixels, y_pixels, THREAD_NUMBER, MY_PRECISION, left, top, width,
+             image_data);
 
   stbi_write_jpg("image.jpg", x_pixels, y_pixels, 3, image_data, 100);
 
