@@ -27,6 +27,14 @@ runmain: main.out
 						-y $$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .y | sed -e 's/"//g' ))\
 						-w $$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .width | sed -e 's/"//g' ))
 
+runserver: main.out
+	./main.out -s
+
+testserver:
+	JSON_ARGS=$$(cat centre_image_params.json); \
+						URL='localhost:8888/image?x='$$(printf "%50.50s" $$(echo $$JSON_ARGS | jq .x | sed -e 's/"//g' ))'&y='$$(printf "%50.50s" $$(echo $$JSON_ARGS | jq .y | sed -e 's/"//g' ))'&width='$$(printf "%50.50s" $$(echo $$JSON_ARGS | jq .width | sed -e 's/"//g' )) ; \
+	curl $$URL;
+
 clean: 
 	rm -rf *.o *.out
 
