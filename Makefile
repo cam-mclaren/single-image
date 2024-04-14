@@ -4,12 +4,12 @@ COMPILER = gcc
 
 # Linker Flags 
 
-LINKER_FLAGS = -lm -lpthread -lmpfr -lgmp 
+LINKER_FLAGS = -lm -lpthread -lmpfr -lgmp -lmicrohttpd
 
 #Compilation flags 
 
 COMPILER_FLAGS = 
-TARGET_FILES =  my_utils.c image_gen.c main.c
+TARGET_FILES =  my_utils.c image_gen.c server.c main.c
 
 
 OBJECT_FILES = $(TARGET_FILES:%.c=%.o)

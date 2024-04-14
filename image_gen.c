@@ -11,6 +11,17 @@
 #include "image_gen.h"
 #include "my_utils.h"
 
+int check_and_copy_input(char *input, char *output, int size, char *var_name) {
+  int arg_len = strlen(input);
+  if (arg_len > size) {
+    printf("Error. %s is too long\n", var_name);
+    return 208;
+  }
+  strcpy(output, input);
+  zero_fill(arg_len, size, output);
+  return 0;
+}
+
 // Worker function spawned on each thread. Workfunction calls use a mutex locked
 // integer to allocate which column in the image matrix they will be
 // calculating. When the mutex locked integer reaches the number of columns in

@@ -5,12 +5,18 @@
 #include <gmp.h>
 #include <mpfr.h>
 
+#ifndef STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#endif
+
+#ifndef STB_IMAGE_WRITE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
+#endif
 
 #include "image_gen.h"
+#include "server.h"
 // #include "my_utils.h"
 
 #include <unistd.h>
@@ -53,35 +59,21 @@ int main(int argc, char **argv) {
       break;
     case 'x':
       printf("x argument : %s\n", optarg);
-      x_arg_len = strlen(optarg);
-      if (x_arg_len > 59) {
-        printf("Error. x_arg is too long\n");
+      if (check_and_copy_input(optarg, x_arg, array_len, "x_arg") != 0) {
         return 208;
-      } else {
-        strcpy(x_arg, optarg);
-        zero_fill(x_arg_len, array_len, x_arg);
       }
       break;
     case 'y':
       printf("y argument : %s\n", optarg);
-      y_arg_len = strlen(optarg);
-      if (y_arg_len > 59) {
-        printf("Error. y_arg is too long\n");
+      if (check_and_copy_input(optarg, y_arg, array_len, "y_arg") != 0) {
         return 208;
-      } else {
-        strcpy(y_arg, optarg);
-        zero_fill(y_arg_len, array_len, y_arg);
       }
       break;
     case 'w':
       printf("width argument : %s\n", optarg);
-      width_arg_len = strlen(optarg);
-      if (width_arg_len > 59) {
-        printf("Error. width_arg is too long\n");
+      if (check_and_copy_input(optarg, width_arg, array_len, "width_arg") !=
+          0) {
         return 208;
-      } else {
-        strcpy(width_arg, optarg);
-        zero_fill(width_arg_len, array_len, width_arg);
       }
       break;
     case ':':
@@ -101,34 +93,37 @@ int main(int argc, char **argv) {
 
   printf("%s\n%s\n%s\n", x_arg, y_arg, width_arg);
 
-  mpfr_t top, left, width;
-  mpfr_init2(top, MY_PRECISION);
-  mpfr_init2(left, MY_PRECISION);
-  mpfr_init2(width, MY_PRECISION);
-
-  mpfr_strtofr(left, x_arg, NULL, 10, MPFR_RNDD);
-  mpfr_strtofr(top, y_arg, NULL, 10, MPFR_RNDD);
-  mpfr_strtofr(width, width_arg, NULL, 10, MPFR_RNDD);
-
   // resolution
   int x_pixels = 1280;
   int y_pixels = 720;
 
   // define image_data array
-  unsigned char *image_data =
-      calloc(y_pixels * x_pixels * 3, sizeof(unsigned char));
 
-  make_image(x_pixels, y_pixels, THREAD_NUMBER, MY_PRECISION, left, top, width,
-             image_data);
+  if (is_server) {
+    start_server(&array_len);
+  } else {
 
-  stbi_write_jpg("image.jpg", x_pixels, y_pixels, 3, image_data, 100);
+    mpfr_t top, left, width;
+    mpfr_init2(top, MY_PRECISION);
+    mpfr_init2(left, MY_PRECISION);
+    mpfr_init2(width, MY_PRECISION);
 
-  free((void *)image_data);
-  mpfr_clear(left);
-  mpfr_clear(top);
-  mpfr_clear(width);
+    mpfr_strtofr(left, x_arg, NULL, 10, MPFR_RNDD);
+    mpfr_strtofr(top, y_arg, NULL, 10, MPFR_RNDD);
+    mpfr_strtofr(width, width_arg, NULL, 10, MPFR_RNDD);
+
+    unsigned char *image_data =
+        calloc(y_pixels * x_pixels * 3, sizeof(unsigned char));
+    make_image(x_pixels, y_pixels, THREAD_NUMBER, MY_PRECISION, left, top,
+               width, image_data);
+    stbi_write_jpg("image.jpg", x_pixels, y_pixels, 3, image_data, 100);
+    free((void *)image_data);
+    mpfr_clear(left);
+    mpfr_clear(top);
+    mpfr_clear(width);
+  }
+
   mpfr_free_cache();
-
   clock_t end = clock();
 
   double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;

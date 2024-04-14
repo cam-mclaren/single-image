@@ -42,4 +42,5 @@ int make_image(int x_pixels, int y_pixels, int thread_count, long int precision,
                mpfr_t left, mpfr_t top, mpfr_t width,
                unsigned char *image_data);
 
+int check_and_copy_input(char *input, char *output, int size, char *var_name);
 #endif
