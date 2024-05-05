@@ -16,6 +16,7 @@
 #endif
 
 #include "image_gen.h"
+#include "log.h"
 #include "server.h"
 // #include "my_utils.h"
 
@@ -38,6 +39,7 @@ int main(int argc, char **argv) {
   // Times main()
   clock_t begin = clock();
 
+  set_log_level(DEBUG);
   // put ':' in the starting of the
   // string so that program can
   // distinguish between '?' and ':'
@@ -53,34 +55,34 @@ int main(int argc, char **argv) {
   while ((opt = getopt(argc, argv, ":sx:y:w:")) != -1) {
     switch (opt) {
     case 's':
-      printf("option : %c\n", opt);
+      loggf(INFO, "Command line option : %c\n", opt);
       is_server = true;
-      printf("Running in server mode\n");
+      loggf(INFO, "Running in server mode\n");
       break;
     case 'x':
-      printf("x argument : %s\n", optarg);
+      loggf(INFO, "x argument : %s\n", optarg);
       if (check_and_copy_input(optarg, x_arg, array_len, "x_arg") != 0) {
         return 208;
       }
       break;
     case 'y':
-      printf("y argument : %s\n", optarg);
+      loggf(INFO, "y argument : %s\n", optarg);
       if (check_and_copy_input(optarg, y_arg, array_len, "y_arg") != 0) {
         return 208;
       }
       break;
     case 'w':
-      printf("width argument : %s\n", optarg);
+      loggf(INFO, "width argument : %s\n", optarg);
       if (check_and_copy_input(optarg, width_arg, array_len, "width_arg") !=
           0) {
         return 208;
       }
       break;
     case ':':
-      printf("option needs a value\n");
+      loggf(INFO, "option needs a value\n");
       break;
     case '?':
-      printf("unknown option : %c\n", optopt);
+      loggf(INFO, "unknown option : %c\n", optopt);
       break;
     }
   }
@@ -88,10 +90,8 @@ int main(int argc, char **argv) {
   // optind is for the extra arguments
   // which are not parsed
   for (; optind < argc; optind++) {
-    printf("extra arguments : %s\n", argv[optind]);
+    loggf(INFO, "extra arguments : %s\n", argv[optind]);
   }
-
-  printf("%s\n%s\n%s\n", x_arg, y_arg, width_arg);
 
   // resolution
   int x_pixels = 1280;
@@ -127,14 +127,14 @@ int main(int argc, char **argv) {
   clock_t end = clock();
 
   double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-  printf("Main() CPU time used was %lf seconds\n", time_spent);
+  loggf(INFO, "Main() CPU time used was %lf seconds\n", time_spent);
 
   struct timeval tv2;
   struct timezone tz2;
   gettimeofday(&tv2, &tz2);
 
-  printf("Wall clock time elapsed is %lf seconds.\n",
-         (double)(tv2.tv_sec - tv.tv_sec) +
-             (double)(tv2.tv_usec - tv.tv_usec) / 1000000);
+  loggf(INFO, "Wall clock time elapsed is %lf seconds.\n",
+        (double)(tv2.tv_sec - tv.tv_sec) +
+            (double)(tv2.tv_usec - tv.tv_usec) / 1000000);
   return 0;
 }

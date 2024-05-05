@@ -9,7 +9,7 @@ LINKER_FLAGS = -lm -lpthread -lmpfr -lgmp -lmicrohttpd
 #Compilation flags 
 
 COMPILER_FLAGS = 
-TARGET_FILES =  my_utils.c image_gen.c server.c main.c
+TARGET_FILES =  my_utils.c log.c image_gen.c server.c main.c
 
 
 OBJECT_FILES = $(TARGET_FILES:%.c=%.o)
@@ -41,15 +41,15 @@ clean:
 
 ######################################## Will remove below later. 
 ######################################## Only need these file to create the centre_image_params.txt
-maketemp: 
-	$(COMPILER)  temp_math.c  $(LINKER_FLAGS) -o test.out
-
-runtemp: test.out
-	JSON_ARGS=$$(cat image_parameters.json); \
-						./test.out \
-						$$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .x | sed -e 's/"//g')) \
-						$$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .y | sed -e 's/"//g')) \
-						$$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .width | sed -e 's/"//g')) 
-
+#maketemp: 
+#	$(COMPILER)  temp_math.c  $(LINKER_FLAGS) -o test.out
+#
+#runtemp: test.out
+#	JSON_ARGS=$$(cat image_parameters.json); \
+#						./test.out \
+#						$$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .x | sed -e 's/"//g')) \
+#						$$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .y | sed -e 's/"//g')) \
+#						$$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .width | sed -e 's/"//g')) 
+#
 ######################################## Will remove above later. 
 ######################################## Only need these file to create the centre_image_params.txt

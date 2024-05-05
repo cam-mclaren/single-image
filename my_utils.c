@@ -10,6 +10,7 @@
 
 */
 #include "my_utils.h"
+#include "log.h"
 #include <math.h>
 #include <stdio.h>
 
@@ -31,6 +32,7 @@ void print_double_array(double *array, int size) {
 
 void fill_double_array_from_file(const char *path, int size,
                                  double *target_array) {
+  loggf(DEBUG, "%s: Reading array from file %s\n", __func__, path);
   FILE *file_pointer = fopen(path, "r");
   int index;
   double num;
@@ -44,10 +46,12 @@ void fill_double_array_from_file(const char *path, int size,
 // Function to count the number of lines in a file of doubles (Assumes one
 // double per line)
 int count_doubles_in_file(const char *path) {
+  loggf(DEBUG, "%s: Counting doubles from file %s\n", __func__, path);
   FILE *file_pointer = fopen(path, "r");
   if (file_pointer == NULL) {
     fprintf(stderr,
-            "Error in count_lines_in_file().\nFunction failed to open file.\n");
+            "Error in count_lines_in_file().\n%s failed to open file.\n",
+            __func__);
     return -1;
   }
   int line_count = 0;

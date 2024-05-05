@@ -1,6 +1,8 @@
 #include "server.h"
 #include "image_gen.h"
+#include "log.h"
 #include <microhttpd.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,32 +14,47 @@
 #include "stb_image.h"
 #include "stb_image_write.h"
 
-enum MHD_Result print_out_key(void *cls, enum MHD_ValueKind kind,
-                              const char *key, const char *value);
-enum MHD_Result
-answer_to_connection(void *cls, struct MHD_Connection *connection,
-                     const char *url, const char *method, const char *version,
-                     const char *upload_data, unsigned long *upload_data_size,
-                     void **con_cls) {
+struct server_data {
+  bool busy_status;
+};
+
+int print_out_key(void *cls, enum MHD_ValueKind kind, const char *key,
+                  const char *value);
+int answer_to_connection(void *cls, struct MHD_Connection *connection,
+                         const char *url, const char *method,
+                         const char *version, const char *upload_data,
+                         unsigned long *upload_data_size, void **con_cls) {
   struct MHD_Response *response;
   int ret;
   const char *response_str = "Endpoint hit";
-  printf("%s\n", (char *)cls);
+  loggf(INFO, "%s\n", (char *)cls);
   // Print to the console which endpoint and method was accessed
   if (strcmp(url, "/image") == 0) {
     if (strcmp(method, "GET") == 0) {
+
+      // check if server is currently making an image
+      struct server_data *serverData = (struct server_data *)cls;
+      if (serverData->busy_status == true) {
+      } else {
+        serverData->busy_status = true;
+      }
+
       printf("url sent was /image\n");
+
+      // Read arguments from http request
       const char *x_value =
           MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "x");
-      printf("x_value: %s\n", x_value);
+      loggf(DEBUG, "%s: x_value: %s\n", __func__, x_value);
       const char *y_value =
           MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "y");
-      printf("y_value: %s\n", y_value);
+      loggf(DEBUG, "%s: y_value: %s\n", __func__, y_value);
       const char *width_value = MHD_lookup_connection_value(
           connection, MHD_GET_ARGUMENT_KIND, "width");
-      printf("width_value: %s\n", width_value);
+      loggf(DEBUG, "%s: width_value: %s\n", __func__, width_value);
 
-      int size = *((int *)cls);
+      // temporary declaration/defintion of the length of supplied arguments.
+      // Should eventually be supplied in the request
+      int size = 70;
       char x[size];
       char y[size];
       char w[size];
@@ -46,6 +63,7 @@ answer_to_connection(void *cls, struct MHD_Connection *connection,
       check_and_copy_input((char *)width_value, w, size, "width");
 
       // resolution
+      // Should eventually be supplied in the request
       int x_pixels = 1280;
       int y_pixels = 720;
 
@@ -54,6 +72,7 @@ answer_to_connection(void *cls, struct MHD_Connection *connection,
       mpfr_init2(left, MY_PRECISION);
       mpfr_init2(width, MY_PRECISION);
 
+      // Temporary debug statements
       mpfr_strtofr(left, x, NULL, 10, MPFR_RNDD);
       mpfr_strtofr(top, y, NULL, 10, MPFR_RNDD);
       mpfr_strtofr(width, w, NULL, 10, MPFR_RNDD);
@@ -65,8 +84,8 @@ answer_to_connection(void *cls, struct MHD_Connection *connection,
       stbi_write_jpg("image.jpg", x_pixels, y_pixels, 3, image_data, 100);
     }
   } else {
-    printf("Unhandled method url combination\n");
-    printf("Accessed %s with method %s\n", url, method);
+    loggf(WARN, "Unhandled method url combination\n");
+    loggf(DEBUG, "Accessed %s with method %s\n", url, method);
     MHD_get_connection_values(connection, MHD_HEADER_KIND, &print_out_key,
                               NULL);
   }
@@ -80,26 +99,29 @@ answer_to_connection(void *cls, struct MHD_Connection *connection,
   return ret;
 }
 
-enum MHD_Result print_out_key(void *cls, enum MHD_ValueKind kind,
-                              const char *key, const char *value) {
-  printf("%s: %s\n", key, value);
+int print_out_key(void *cls, enum MHD_ValueKind kind, const char *key,
+                  const char *value) {
+  loggf(DEBUG, "%s: %s\n", key, value);
   return MHD_YES;
 }
 
 void start_server(int *arg_length) {
   struct MHD_Daemon *daemon;
 
+  struct server_data serverData;
+  serverData.busy_status = false;
+
   daemon = MHD_start_daemon(MHD_USE_INTERNAL_POLLING_THREAD, PORT, NULL, NULL,
-                            &answer_to_connection, (void *)arg_length,
+                            &answer_to_connection, (void *)&serverData,
                             MHD_OPTION_END);
   if (daemon == NULL)
     return;
 
-  printf("Server started on port %d\n", PORT);
+  loggf(INFO, "%s: Server started on port %d\n", __func__, PORT);
 
   // To keep the server running until the /shutdown is received
   getchar();
 
   MHD_stop_daemon(daemon);
-  printf("Server has been stopped\n");
+  loggf(INFO, "Server has been stopped\n");
 }

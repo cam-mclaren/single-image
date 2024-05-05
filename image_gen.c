@@ -9,12 +9,13 @@
 #include <mpfr.h>
 
 #include "image_gen.h"
+#include "log.h"
 #include "my_utils.h"
 
 int check_and_copy_input(char *input, char *output, int size, char *var_name) {
   int arg_len = strlen(input);
   if (arg_len > size) {
-    printf("Error. %s is too long\n", var_name);
+    loggf(ERROR, "Error. %s is too long\n", var_name);
     return 208;
   }
   strcpy(output, input);
@@ -29,7 +30,7 @@ int check_and_copy_input(char *input, char *output, int size, char *var_name) {
 int worker_function(void *wrapper_arg /* void pointer to pointer to struct*/) {
   Thrd_awrp thread_argument_wrapper = *(Thrd_awrp *)wrapper_arg;
   Image_params *args = thread_argument_wrapper.args;
-  printf("Thread %d is active\n", thread_argument_wrapper.thread_index);
+  loggf(INFO, "Thread %d is active\n", thread_argument_wrapper.thread_index);
 
   // Declare local copies of necessary variables.
   int current_row;
@@ -55,7 +56,7 @@ int worker_function(void *wrapper_arg /* void pointer to pointer to struct*/) {
     mtx_lock(args->mutex_ptr);
     current_row = *(args->row_count); // read current row
     if (current_row >= args->y_pixels) {
-      printf("Worker function is returning\n");
+      loggf(DEBUG, "Worker function is returning\n");
       mtx_unlock(args->mutex_ptr);
       success = true;
       break; // Exit While loop and return
@@ -210,8 +211,8 @@ int make_image(int x_pixels, int y_pixels, int thread_count, long int precision,
             __LINE__);
     return -1;
   }
-  fprintf(stdout, "Mutex (for image) successfully initialised at line %d\n",
-          __LINE__);
+  loggf(DEBUG, "Mutex (for image) successfully initialised at line %d\n",
+        __LINE__);
 
   thrd_t threads[thread_count];
 
@@ -281,14 +282,13 @@ int make_image(int x_pixels, int y_pixels, int thread_count, long int precision,
       fprintf(stderr, "Error creating thread %d.\n", thread_index);
       return -99;
     } else {
-      printf("Successfully started thread %d.\nWrapper arg thread index is",
-             thread_index);
+      loggf(DEBUG, "Successfully started thread %d.\n", thread_index);
     }
   }
 
   for (thread_index = 0; thread_index < thread_count; thread_index++) {
     thrd_join(threads[thread_index], NULL);
-    printf("Thread %d joined.\n", thread_index);
+    loggf(DEBUG, "Thread %d joined.\n", thread_index);
   }
 
   mtx_destroy(&mutex);
