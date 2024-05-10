@@ -29,6 +29,7 @@
 
 #define MY_PRECISION 665
 #define THREAD_NUMBER 8
+#define DEBUG_MAC printf("line: %d\n", __LINE__);
 
 int main(int argc, char **argv) {
 
@@ -38,7 +39,7 @@ int main(int argc, char **argv) {
   gettimeofday(&tv, &tz);
   // Times main()
   clock_t begin = clock();
-
+  DEBUG_MAC
   set_log_level(DEBUG);
   // put ':' in the starting of the
   // string so that program can
@@ -127,13 +128,13 @@ int main(int argc, char **argv) {
   clock_t end = clock();
 
   double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-  loggf(INFO, "Main() CPU time used was %lf seconds\n", time_spent);
+  loggf(INFO, "%s(): CPU time used was %lf seconds\n", __func__, time_spent);
 
   struct timeval tv2;
   struct timezone tz2;
   gettimeofday(&tv2, &tz2);
 
-  loggf(INFO, "Wall clock time elapsed is %lf seconds.\n",
+  loggf(INFO, "%s(): Wall clock time elapsed is %lf seconds.\n", __func__,
         (double)(tv2.tv_sec - tv.tv_sec) +
             (double)(tv2.tv_usec - tv.tv_usec) / 1000000);
   return 0;
