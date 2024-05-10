@@ -8,7 +8,7 @@ LINKER_FLAGS = -lm -lpthread -lmpfr -lgmp -lmicrohttpd
 
 #Compilation flags 
 
-COMPILER_FLAGS = 
+COMPILER_FLAGS = -Wall
 TARGET_FILES =  my_utils.c log.c image_gen.c server.c main.c
 
 
