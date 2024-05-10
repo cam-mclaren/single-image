@@ -14,6 +14,7 @@
 
 int check_and_copy_input(char *input, char *output, int size, char *var_name) {
   int arg_len = strlen(input);
+  loggf(DEBUG, "%s(): called on %s\n", __func__, input);
   if (arg_len > size) {
     loggf(ERROR, "Error. %s is too long\n", var_name);
     return 208;
