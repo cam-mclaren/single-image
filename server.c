@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/epoll.h>
 
 #define MY_PRECISION 665
 #define THREAD_NUMBER 8
@@ -14,11 +15,21 @@
 #include "stb_image.h"
 #include "stb_image_write.h"
 
-struct server_data {
-  bool busy_status;
-};
-
+int image_request(void *);
 static thrd_t image_request_thread;
+
+static bool server_is_busy = false;
+
+struct server_irs {
+  FILE *server_coms_write;
+  int x_pixels;
+  int y_pixels;
+  int thread_count;
+  long int precision;
+  mpfr_t left;
+  mpfr_t top;
+  mpfr_t width;
+};
 
 int print_out_key(void *cls, enum MHD_ValueKind kind, const char *key,
                   const char *value);
@@ -28,62 +39,77 @@ int answer_to_connection(void *cls, struct MHD_Connection *connection,
                          unsigned long *upload_data_size, void **con_cls) {
   struct MHD_Response *response;
   int ret;
-  const char *response_str = "Endpoint hit";
-  loggf(INFO, "%s\n", (char *)cls);
+  char *response_str;
   // Print to the console which endpoint and method was accessed
   if (strcmp(url, "/image") == 0) {
     if (strcmp(method, "GET") == 0) {
 
-      // check if server is currently making an image
-      struct server_data *serverData = (struct server_data *)cls;
-      if (serverData->busy_status == true) {
-      } else {
-        serverData->busy_status = true;
-      }
-
       loggf(DEBUG, "url sent was /image\n");
 
-      // Read arguments from http request
-      const char *x_value =
-          MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "x");
-      loggf(DEBUG, "%s: x_value: %s\n", __func__, x_value);
-      const char *y_value =
-          MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "y");
-      loggf(DEBUG, "%s: y_value: %s\n", __func__, y_value);
-      const char *width_value = MHD_lookup_connection_value(
-          connection, MHD_GET_ARGUMENT_KIND, "width");
-      loggf(DEBUG, "%s: width_value: %s\n", __func__, width_value);
+      if (!server_is_busy) {
+        response_str = "Server now processing\n";
+        server_is_busy = true;
+        // Read arguments from http request
+        const char *x_value =
+            MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "x");
+        loggf(DEBUG, "%s: x_value: %s\n", __func__, x_value);
+        const char *y_value =
+            MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "y");
+        loggf(DEBUG, "%s: y_value: %s\n", __func__, y_value);
+        const char *width_value = MHD_lookup_connection_value(
+            connection, MHD_GET_ARGUMENT_KIND, "width");
+        loggf(DEBUG, "%s: width_value: %s\n", __func__, width_value);
 
-      // temporary declaration/defintion of the length of supplied arguments.
-      // Should eventually be supplied in the request
-      int size = 70;
-      char x[size];
-      char y[size];
-      char w[size];
-      check_and_copy_input((char *)x_value, x, size, "x");
-      check_and_copy_input((char *)y_value, y, size, "y");
-      check_and_copy_input((char *)width_value, w, size, "width");
+        // temporary declaration/defintion of the length of supplied arguments.
+        // Should eventually be supplied in the request
+        int size = 70;
+        char x[size];
+        char y[size];
+        char w[size];
+        check_and_copy_input((char *)x_value, x, size, "x");
+        check_and_copy_input((char *)y_value, y, size, "y");
+        check_and_copy_input((char *)width_value, w, size, "width");
 
-      // resolution
-      // Should eventually be supplied in the request
-      int x_pixels = 1280;
-      int y_pixels = 720;
+        // resolution
+        // Should eventually be supplied in the request
+        int x_pixels = 1280;
+        int y_pixels = 720;
 
-      mpfr_t top, left, width;
-      mpfr_init2(top, MY_PRECISION);
-      mpfr_init2(left, MY_PRECISION);
-      mpfr_init2(width, MY_PRECISION);
+        //      make_image(x_pixels, y_pixels, THREAD_NUMBER, MY_PRECISION,
+        //      left, top,
+        //                 width, image_data);
+        loggf(DEBUG, "%s(): Line %d: cls = %p\n", __func__, __LINE__, cls);
 
-      // Temporary debug statements
-      mpfr_strtofr(left, x, NULL, 10, MPFR_RNDD);
-      mpfr_strtofr(top, y, NULL, 10, MPFR_RNDD);
-      mpfr_strtofr(width, w, NULL, 10, MPFR_RNDD);
+        struct server_irs irs;
+        irs.server_coms_write = (FILE *)cls;
+        loggf(DEBUG, "%s():irs.server_coms_write = %p\n", __func__,
+              irs.server_coms_write);
+        irs.x_pixels = x_pixels;
+        irs.y_pixels = y_pixels;
+        irs.thread_count = THREAD_NUMBER;
+        irs.precision = MY_PRECISION;
+        mpfr_init2(irs.top, MY_PRECISION);
+        mpfr_init2(irs.left, MY_PRECISION);
+        mpfr_init2(irs.width, MY_PRECISION);
+        loggf(DEBUG, "%s(): irs mpfr variables initialised\n", __func__);
 
-      unsigned char *image_data =
-          calloc(y_pixels * x_pixels * 3, sizeof(unsigned char));
-      make_image(x_pixels, y_pixels, THREAD_NUMBER, MY_PRECISION, left, top,
-                 width, image_data);
-      stbi_write_jpg("image.jpg", x_pixels, y_pixels, 3, image_data, 100);
+        mpfr_strtofr(irs.left, x, NULL, 10, MPFR_RNDD);
+        mpfr_strtofr(irs.top, y, NULL, 10, MPFR_RNDD);
+        mpfr_strtofr(irs.width, w, NULL, 10, MPFR_RNDD);
+        loggf(DEBUG, "%s(): run mpfr_strtofr on irs variables\n", __func__);
+
+        // thrd_t image_request_thread;
+        if (thrd_create(&image_request_thread, &image_request,
+                        (void *)(&irs)) != thrd_success) {
+          loggf(ERROR, "%s(): thrd_create returned a failure\n", __func__);
+          return 500; // Return an Internal server error
+        }
+        loggf(DEBUG, "%s(): thrd_create returned sucessfully\n", __func__);
+
+      } else {
+        loggf(DEBUG, "Server is busy\n");
+        response_str = "Server is already busy\n";
+      }
     }
   } else {
     loggf(WARN, "Unhandled method url combination\n");
@@ -108,25 +134,28 @@ int print_out_key(void *cls, enum MHD_ValueKind kind, const char *key,
 }
 
 int start_server(int *arg_length) {
-
-  //  Establish a pipe here somewhere.
-  //  This pipe needs to be used by whatever calls make image
   //  What does the server do when it gets an image request? It starts a new
   //  thread that calls a function
   struct MHD_Daemon *daemon;
 
-  int mypipe[2];
-  if (pipe(mypipe) == -1) {
+  int server_coms_pipe[2];
+  // Pipe for epoll to wait on. Could potentially be replaced by eventfd and
+  // static variables. Pipe is probably considerable slower
+  if (pipe(server_coms_pipe) == -1) {
     loggf(ERROR, "%s: pipe() failed\n", __func__);
     return 1;
   }
 
-  struct server_data serverData;
-  serverData.busy_status = false;
+  FILE *server_coms_write = fdopen(server_coms_pipe[1], "w");
+  FILE *server_coms_read = fdopen(server_coms_pipe[0], "r");
 
-  daemon = MHD_start_daemon(MHD_USE_INTERNAL_POLLING_THREAD, PORT, NULL, NULL,
-                            &answer_to_connection, (void *)&serverData,
-                            MHD_OPTION_END);
+  loggf(DEBUG, "%s(): Line %d: server_coms_write = %p\n", __func__, __LINE__,
+        server_coms_write);
+
+  daemon = MHD_start_daemon(
+      MHD_USE_INTERNAL_POLLING_THREAD, PORT, NULL, NULL, &answer_to_connection,
+      (void *)server_coms_write /* extra args for awnswer_to_connection here */,
+      MHD_OPTION_END);
   if (daemon == NULL) {
     return 1;
   }
@@ -135,39 +164,85 @@ int start_server(int *arg_length) {
 
   // To keep the server running until the /shutdown is received
   bool exit = false;
-  while (!exit) {
-    getchar(); // TODO : Replace with epoll and read switch statement
-    exit = true;
+  int bytes_read, read_buff_size = 15;
+  char *read_buff[read_buff_size];
+
+  struct epoll_event event, events[1];
+  event.events = EPOLLIN;
+  event.data.fd = server_coms_pipe[0];
+
+  int epoll_fd = epoll_create1(0);
+  if (epoll_fd == -1) {
+    loggf(ERROR,
+          "%s(): epoll_create1 failed to create epoll file descriptor.\n",
+          __func__);
+    return 1;
   }
+
+  if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_coms_pipe[0], &event) == -1) {
+    loggf(ERROR, "%s(): epoll_ctl returned an error.\n", __func__);
+    return 1;
+  }
+
+  while (!exit) {
+    loggf(DEBUG, "%s(): epoll_wait called\n", __func__);
+    epoll_wait(epoll_fd, events, 1,
+               30000); // TODO : Replace with epoll and read switch statement
+    bytes_read = read(server_coms_pipe[0], read_buff, read_buff_size);
+    if (bytes_read == -1) {
+      loggf(ERROR, "%s(): read() returned an error.\n", __func__);
+    }
+
+    if (strcmp((const char *)read_buff, "thread_finished") == 0) {
+      loggf(DEBUG, "%s(): read_buff = %s\n", __func__, (const char *)read_buff);
+      loggf(DEBUG,
+            "%s(): recieved 'thread_finished' msg from server_coms_pipe[0]\n",
+            __func__);
+      thrd_join(image_request_thread, NULL);
+      loggf(DEBUG, "%s(): thrd_join was called.\n", __func__);
+      server_is_busy = false;
+    }
+    loggf(DEBUG, "%s(): read_buff = %s\n", __func__, read_buff);
+  }
+
+  fclose(server_coms_write);
+  fclose(server_coms_read);
 
   MHD_stop_daemon(daemon);
   loggf(INFO, "%s: MHD_stop_daemon called\n", __func__);
   return 0;
 }
 
-struct server_irs {
-  int pipe_write;
-  int x_pixels;
-  int y_pixels;
-  int thread_count;
-  long int precision;
-  mpfr_t left;
-  mpfr_t top;
-  mpfr_t width;
-  unsigned char *image_data;
-};
-
 int image_request(void *image_request_struct) {
+  loggf(DEBUG, "%s(): called\n", __func__);
   // Will need to take in a pipe fd descriptor that can be used to talk to
   // start_server (which will be called on the main thread
   //
   struct server_irs *args = (struct server_irs *)image_request_struct;
+  FILE *server_coms_write = args->server_coms_write;
+
+  unsigned char *image_data =
+      calloc(args->y_pixels * args->x_pixels * 3, sizeof(unsigned char));
+  loggf(DEBUG, "%s(): calloc() called to create buffer for image_data\n",
+        __func__);
 
   loggf(DEBUG, "%s(): is calling make_image()\n", __func__);
   make_image(args->x_pixels, args->y_pixels, args->thread_count,
-             args->precision, args->left, args->top, args->width,
-             args->image_data);
+             args->precision, args->left, args->top, args->width, image_data);
   loggf(DEBUG, "%s(): make_image() returned\n", __func__);
+
+  stbi_write_jpg("image.jpg", args->x_pixels, args->y_pixels, 3, image_data,
+                 100);
+
+  free(image_data);
+  loggf(DEBUG, "%s(): free() called on data allocated to image_data\n",
+        __func__);
+
+  loggf(DEBUG, "%s(): calling fprintf to server_coms_pipe stream\n", __func__);
+  fprintf(server_coms_write, "thread_finished");
+  loggf(DEBUG, "%s(): calling fflush to server_coms_pipe stream\n", __func__);
+  fflush(server_coms_write);
+
   return 0;
 }
 
