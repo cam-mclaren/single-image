@@ -18,6 +18,8 @@ struct server_data {
   bool busy_status;
 };
 
+static thrd_t image_request_thread;
+
 int print_out_key(void *cls, enum MHD_ValueKind kind, const char *key,
                   const char *value);
 int answer_to_connection(void *cls, struct MHD_Connection *connection,
@@ -39,7 +41,7 @@ int answer_to_connection(void *cls, struct MHD_Connection *connection,
         serverData->busy_status = true;
       }
 
-      printf("url sent was /image\n");
+      loggf(DEBUG, "url sent was /image\n");
 
       // Read arguments from http request
       const char *x_value =
@@ -105,8 +107,19 @@ int print_out_key(void *cls, enum MHD_ValueKind kind, const char *key,
   return MHD_YES;
 }
 
-void start_server(int *arg_length) {
+int start_server(int *arg_length) {
+
+  //  Establish a pipe here somewhere.
+  //  This pipe needs to be used by whatever calls make image
+  //  What does the server do when it gets an image request? It starts a new
+  //  thread that calls a function
   struct MHD_Daemon *daemon;
+
+  int mypipe[2];
+  if (pipe(mypipe) == -1) {
+    loggf(ERROR, "%s: pipe() failed\n", __func__);
+    return 1;
+  }
 
   struct server_data serverData;
   serverData.busy_status = false;
@@ -114,14 +127,48 @@ void start_server(int *arg_length) {
   daemon = MHD_start_daemon(MHD_USE_INTERNAL_POLLING_THREAD, PORT, NULL, NULL,
                             &answer_to_connection, (void *)&serverData,
                             MHD_OPTION_END);
-  if (daemon == NULL)
-    return;
+  if (daemon == NULL) {
+    return 1;
+  }
 
   loggf(INFO, "%s: Server started on port %d\n", __func__, PORT);
 
   // To keep the server running until the /shutdown is received
-  getchar();
+  bool exit = false;
+  while (!exit) {
+    getchar(); // TODO : Replace with epoll and read switch statement
+    exit = true;
+  }
 
   MHD_stop_daemon(daemon);
-  loggf(INFO, "Server has been stopped\n");
+  loggf(INFO, "%s: MHD_stop_daemon called\n", __func__);
+  return 0;
 }
+
+struct server_irs {
+  int pipe_write;
+  int x_pixels;
+  int y_pixels;
+  int thread_count;
+  long int precision;
+  mpfr_t left;
+  mpfr_t top;
+  mpfr_t width;
+  unsigned char *image_data;
+};
+
+int image_request(void *image_request_struct) {
+  // Will need to take in a pipe fd descriptor that can be used to talk to
+  // start_server (which will be called on the main thread
+  //
+  struct server_irs *args = (struct server_irs *)image_request_struct;
+
+  loggf(DEBUG, "%s(): is calling make_image()\n", __func__);
+  make_image(args->x_pixels, args->y_pixels, args->thread_count,
+             args->precision, args->left, args->top, args->width,
+             args->image_data);
+  loggf(DEBUG, "%s(): make_image() returned\n", __func__);
+  return 0;
+}
+
+// function wait and read input on the pipe?
