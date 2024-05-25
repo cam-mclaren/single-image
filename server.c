@@ -60,8 +60,8 @@ int answer_to_connection(void *cls, struct MHD_Connection *connection,
             connection, MHD_GET_ARGUMENT_KIND, "width");
         loggf(DEBUG, "%s: width_value: %s\n", __func__, width_value);
 
-        // temporary declaration/defintion of the length of supplied arguments.
-        // Should eventually be supplied in the request
+        // temporary declaration/defintion of the length of supplied
+        // arguments. Should eventually be supplied in the request
         int size = 70;
         char x[size];
         char y[size];
@@ -75,8 +75,8 @@ int answer_to_connection(void *cls, struct MHD_Connection *connection,
         int x_pixels = 1280;
         int y_pixels = 720;
 
-        //      make_image(x_pixels, y_pixels, THREAD_NUMBER, MY_PRECISION,
-        //      left, top,
+        //      make_image(x_pixels, y_pixels, THREAD_NUMBER,
+        //      MY_PRECISION, left, top,
         //                 width, image_data);
         loggf(DEBUG, "%s(): Line %d: cls = %p\n", __func__, __LINE__, cls);
 
@@ -138,20 +138,20 @@ int start_server(int *arg_length) {
   //  thread that calls a function
   struct MHD_Daemon *daemon;
 
-  int server_coms_pipe[2];
-  // Pipe for epoll to wait on. Could potentially be replaced by eventfd and
-  // static variables. Pipe is probably considerable slower
+  int server_coms_pipe[2]; // Pipe for epoll to wait on.
   if (pipe(server_coms_pipe) == -1) {
-    loggf(ERROR, "%s: pipe() failed\n", __func__);
+    loggf(ERROR,
+          "%s: pipe() failed to create file descriptors used for thread "
+          "communication\n",
+          __func__);
     return 1;
   }
-
   FILE *server_coms_write = fdopen(server_coms_pipe[1], "w");
   FILE *server_coms_read = fdopen(server_coms_pipe[0], "r");
-
   loggf(DEBUG, "%s(): Line %d: server_coms_write = %p\n", __func__, __LINE__,
         server_coms_write);
 
+  // Launches the daemon on another thread
   daemon = MHD_start_daemon(
       MHD_USE_INTERNAL_POLLING_THREAD, PORT, NULL, NULL, &answer_to_connection,
       (void *)server_coms_write /* extra args for awnswer_to_connection here */,
@@ -162,15 +162,13 @@ int start_server(int *arg_length) {
 
   loggf(INFO, "%s: Server started on port %d\n", __func__, PORT);
 
-  // To keep the server running until the /shutdown is received
-  bool exit = false;
-  int bytes_read, read_buff_size = 15;
-  char *read_buff[read_buff_size];
-
+  bool exit =
+      false; // To keep the server running until the /shutdown is received
+  int bytes_read, pipe_read_buff_size = 15;
+  char *pipe_read_buff[pipe_read_buff_size];
   struct epoll_event event, events[1];
   event.events = EPOLLIN;
   event.data.fd = server_coms_pipe[0];
-
   int epoll_fd = epoll_create1(0);
   if (epoll_fd == -1) {
     loggf(ERROR,
@@ -186,23 +184,28 @@ int start_server(int *arg_length) {
 
   while (!exit) {
     loggf(DEBUG, "%s(): epoll_wait called\n", __func__);
-    epoll_wait(epoll_fd, events, 1,
-               30000); // TODO : Replace with epoll and read switch statement
-    bytes_read = read(server_coms_pipe[0], read_buff, read_buff_size);
+    if (epoll_wait(epoll_fd, events, 1, -1) == -1) {
+      loggf(ERROR, "%s(): epoll_wait() returned an error.\n", __func__);
+    }
+    loggf(DEBUG, "%s(): epoll_wait received an event\n", __func__);
+    memset(pipe_read_buff, (int)'\0', pipe_read_buff_size);
+    bytes_read = read(server_coms_pipe[0], pipe_read_buff, pipe_read_buff_size);
     if (bytes_read == -1) {
       loggf(ERROR, "%s(): read() returned an error.\n", __func__);
     }
 
-    if (strcmp((const char *)read_buff, "thread_finished") == 0) {
-      loggf(DEBUG, "%s(): read_buff = %s\n", __func__, (const char *)read_buff);
+    if (strcmp((const char *)pipe_read_buff, "thread_finished") == 0) {
       loggf(DEBUG,
-            "%s(): recieved 'thread_finished' msg from server_coms_pipe[0]\n",
+            "%s(): received 'thread_finished' msg from "
+            "server_coms_pipe[0]\n",
+            __func__);
+      loggf(DEBUG, "%s(): Calling thrd_join() on image_request_thread\n",
             __func__);
       thrd_join(image_request_thread, NULL);
-      loggf(DEBUG, "%s(): thrd_join was called.\n", __func__);
       server_is_busy = false;
-    }
-    loggf(DEBUG, "%s(): read_buff = %s\n", __func__, read_buff);
+    } // Shutdown callback needs to be implemented
+
+    loggf(DEBUG, "%s(): pipe_read_buff = %s\n", __func__, pipe_read_buff);
   }
 
   fclose(server_coms_write);
@@ -214,6 +217,7 @@ int start_server(int *arg_length) {
 }
 
 int image_request(void *image_request_struct) {
+  // TODO error handling
   loggf(DEBUG, "%s(): called\n", __func__);
   // Will need to take in a pipe fd descriptor that can be used to talk to
   // start_server (which will be called on the main thread
@@ -221,8 +225,8 @@ int image_request(void *image_request_struct) {
   struct server_irs *args = (struct server_irs *)image_request_struct;
   FILE *server_coms_write = args->server_coms_write;
 
-  unsigned char *image_data =
-      calloc(args->y_pixels * args->x_pixels * 3, sizeof(unsigned char));
+  size_t image_data_size = args->y_pixels * args->x_pixels * 3;
+  unsigned char *image_data = calloc(image_data_size, sizeof(unsigned char));
   loggf(DEBUG, "%s(): calloc() called to create buffer for image_data\n",
         __func__);
 
