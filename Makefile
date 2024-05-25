@@ -8,7 +8,7 @@ LINKER_FLAGS = -lm -lpthread -lmpfr -lgmp -lmicrohttpd
 
 #Compilation flags 
 
-COMPILER_FLAGS = -Wall
+COMPILER_FLAGS = -Wall -g
 TARGET_FILES =  my_utils.c log.c image_gen.c server.c main.c
 
 
@@ -28,7 +28,7 @@ runmain: main.out
 						-w $$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .width | sed -e 's/"//g' ))
 
 runserver: main.out
-	./main.out -s
+	gdb --args ./main.out -s
 
 testserver:
 	JSON_ARGS=$$(cat centre_image_params.json); \
