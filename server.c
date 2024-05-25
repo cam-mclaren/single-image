@@ -15,7 +15,16 @@
 #include "stb_image.h"
 #include "stb_image_write.h"
 
+// client connection
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+
 int image_request(void *);
+
+int stream_data(unsigned char *image_data, size_t image_data_size,
+                char *server_string, int server_port);
+
 static thrd_t image_request_thread;
 
 static bool server_is_busy = false;
@@ -43,7 +52,6 @@ int answer_to_connection(void *cls, struct MHD_Connection *connection,
   // Print to the console which endpoint and method was accessed
   if (strcmp(url, "/image") == 0) {
     if (strcmp(method, "GET") == 0) {
-
       loggf(DEBUG, "url sent was /image\n");
 
       if (!server_is_busy) {
@@ -105,7 +113,6 @@ int answer_to_connection(void *cls, struct MHD_Connection *connection,
           return 500; // Return an Internal server error
         }
         loggf(DEBUG, "%s(): thrd_create returned sucessfully\n", __func__);
-
       } else {
         loggf(DEBUG, "Server is busy\n");
         response_str = "Server is already busy\n";
@@ -176,7 +183,6 @@ int start_server(int *arg_length) {
           __func__);
     return 1;
   }
-
   if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_coms_pipe[0], &event) == -1) {
     loggf(ERROR, "%s(): epoll_ctl returned an error.\n", __func__);
     return 1;
@@ -235,19 +241,99 @@ int image_request(void *image_request_struct) {
              args->precision, args->left, args->top, args->width, image_data);
   loggf(DEBUG, "%s(): make_image() returned\n", __func__);
 
-  stbi_write_jpg("image.jpg", args->x_pixels, args->y_pixels, 3, image_data,
-                 100);
+  //  stbi_write_jpg("image.jpg", args->x_pixels, args->y_pixels, 3, image_data,
+  //                 100);
+  stream_data(image_data, image_data_size, "127.0.0.1",
+              4321); // TODO: error Handling
 
   free(image_data);
   loggf(DEBUG, "%s(): free() called on data allocated to image_data\n",
         __func__);
 
   loggf(DEBUG, "%s(): calling fprintf to server_coms_pipe stream\n", __func__);
-  fprintf(server_coms_write, "thread_finished");
+  fprintf(server_coms_write, "thread_finished"); // TODO: error handling
   loggf(DEBUG, "%s(): calling fflush to server_coms_pipe stream\n", __func__);
   fflush(server_coms_write);
 
   return 0;
 }
 
-// function wait and read input on the pipe?
+int stream_data(unsigned char *image_data, size_t image_data_size,
+                char *server_string, int server_port) {
+  struct sockaddr_in client_socket, server_address_socket;
+
+  // setup client socket
+  client_socket.sin_family = AF_INET;
+  int client_socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+  if (client_socket_fd == -1) {
+    loggf(ERROR, "%s(): socket() returned an error creating client_socket_fd\n",
+          __func__);
+    return -1;
+  } else {
+    loggf(DEBUG, "%s(): socket() returned a valid file descriptor", __func__);
+  }
+
+  // setup server address socket
+  server_address_socket.sin_family = AF_INET;
+  server_address_socket.sin_port = htons(server_port);
+  server_address_socket.sin_addr.s_addr = inet_addr(server_string);
+
+  //  // bind
+  //  int bind_status = bind(client_socket_fd, (struct sockaddr
+  //  *)&client_socket,
+  //                         sizeof(client_socket));
+  //  if (bind_status == -1) {
+  //    loggf(ERROR, "%s():bind() returned an error on client_socket_fd\n",
+  //          __func__);
+  //    return -1;
+  //  }
+
+  // connect
+  int connect_status =
+      connect(client_socket_fd, (struct sockaddr *)&server_address_socket,
+              sizeof(server_address_socket));
+  if (connect_status == -1) {
+    loggf(ERROR,
+          "%s(): connect() returned an error attempting to connect to %s on "
+          "port %d\n",
+          __func__, server_string, server_port);
+    return -1;
+  } else {
+    loggf(DEBUG,
+          "%s(): connect() succesfully connect to %s on "
+          "port %d\n",
+          __func__, server_string, server_port);
+  }
+
+  // convert image data to expected data type
+  uint16_t image_data_tranmission[image_data_size];
+  int i;
+  for (i = 0; i < image_data_size; i++) {
+    image_data_tranmission[i] = (uint16_t)image_data[i];
+  }
+  size_t transmission_size = image_data_size * sizeof(uint16_t);
+
+  // send()
+  int send_status =
+      send(client_socket_fd, image_data_tranmission, transmission_size, 0);
+  if (send_status != transmission_size) {
+    loggf(ERROR,
+          "%s(): send() failed to send data to %s on "
+          "port %d\n",
+          __func__, server_string, server_port);
+    return -1;
+  } else if (send_status != transmission_size) {
+    loggf(ERROR,
+          "%s(): send() failed to send all data to %s on "
+          "port %d\n",
+          __func__, server_string, server_port);
+    return -1;
+  } else {
+    loggf(DEBUG,
+          "%s(): send() sent %d bytes of  data to %s on "
+          "port %d\n",
+          __func__, send_status, server_string, server_port);
+  }
+  close(client_socket_fd);
+  return 0;
+}
