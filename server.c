@@ -241,10 +241,20 @@ int image_request(void *image_request_struct) {
              args->precision, args->left, args->top, args->width, image_data);
   loggf(DEBUG, "%s(): make_image() returned\n", __func__);
 
-  //  stbi_write_jpg("image.jpg", args->x_pixels, args->y_pixels, 3, image_data,
-  //                 100);
-  stream_data(image_data, image_data_size, "127.0.0.1",
+  stbi_write_jpg("image.jpg", args->x_pixels, args->y_pixels, 3, image_data,
+                 100);
+
+  stream_data(image_data, image_data_size, "192.168.0.197",
               4321); // TODO: error Handling
+
+  // One off write to file
+  int write_status =
+      write_uint8_to_file("./image_data_file", image_data, image_data_size);
+
+  if (write_status != 0) {
+    loggf(ERROR, "%s: write_uint8_to_file returned an unexpected error\n",
+          __func__);
+  }
 
   free(image_data);
   loggf(DEBUG, "%s(): free() called on data allocated to image_data\n",
@@ -306,12 +316,12 @@ int stream_data(unsigned char *image_data, size_t image_data_size,
   }
 
   // convert image data to expected data type
-  uint16_t image_data_tranmission[image_data_size];
+  uint8_t image_data_tranmission[image_data_size];
   int i;
   for (i = 0; i < image_data_size; i++) {
-    image_data_tranmission[i] = (uint16_t)image_data[i];
+    image_data_tranmission[i] = (uint8_t)image_data[i];
   }
-  size_t transmission_size = image_data_size * sizeof(uint16_t);
+  size_t transmission_size = image_data_size * sizeof(uint8_t);
 
   // send()
   int send_status =
@@ -319,8 +329,9 @@ int stream_data(unsigned char *image_data, size_t image_data_size,
   if (send_status != transmission_size) {
     loggf(ERROR,
           "%s(): send() failed to send data to %s on "
-          "port %d\n",
-          __func__, server_string, server_port);
+          "port %d. Send status = %d\n",
+          __func__, server_string, server_port, send_status);
+    loggf(DEBUG, "Intended to send %zu bytes\n", transmission_size);
     return -1;
   } else if (send_status != transmission_size) {
     loggf(ERROR,

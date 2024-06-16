@@ -1,3 +1,5 @@
+#include <stdint.h>
+#include <stdlib.h>
 #ifndef MY_UTILS_H
 #define MY_UTILS_H
 
@@ -17,4 +19,10 @@ double interp_poly(double *coefficients, double *nodes, double x);
 
 // adds '0' characters to the right hand side of a character array
 int zero_fill(int arg_len, int array_len, char array[]);
+
+// writes a uint8_t array to file
+int write_uint8_to_file(const char *path, uint8_t *data, size_t size);
+
+// reads a uint8_t array from file
+int read_uint8_from_file(const char *path, uint8_t *data, size_t size);
 #endif

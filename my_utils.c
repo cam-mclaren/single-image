@@ -12,7 +12,9 @@
 #include "my_utils.h"
 #include "log.h"
 #include <math.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 int zero_fill(int arg_len, int array_len, char array[]) {
   int i;
@@ -28,6 +30,40 @@ void print_double_array(double *array, int size) {
   for (index = 0; index < size; index++) {
     fprintf(stdout, "%f\n", array[index]);
   }
+}
+
+int write_uint8_to_file(const char *path, uint8_t *data, size_t size) {
+  FILE *file_pointer = fopen(path, "w");
+  if (file_pointer == NULL) {
+    loggf(ERROR, "%s: Error opening in write mode file %s\n", __func__, path);
+    return -1;
+  }
+  size_t elems_written = fwrite(data, sizeof(uint8_t), size, file_pointer);
+  if (elems_written != size) {
+    loggf(ERROR,
+          "%s: Incorrect number of elements written to file %s: Expected %s. "
+          "Received %s\n",
+          __func__, path, size, elems_written);
+    return -1;
+  }
+  return 0;
+}
+
+int read_uint8_from_file(const char *path, uint8_t *data, size_t size) {
+  FILE *file_pointer = fopen(path, "r");
+  if (file_pointer == NULL) {
+    loggf(ERROR, "%s: Error opening in read mode file %s\n", __func__, path);
+    return -1;
+  }
+  size_t elems_read = fread(data, sizeof(uint8_t), size, file_pointer);
+  if (elems_read != size) {
+    loggf(ERROR,
+          "%s: Incorrect number of elements read from file %s: Expected %s. "
+          "Received %s\n",
+          __func__, path, size, elems_read);
+    return -1;
+  }
+  return 0;
 }
 
 void fill_double_array_from_file(const char *path, int size,
