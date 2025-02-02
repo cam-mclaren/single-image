@@ -8,14 +8,14 @@ LINKER_FLAGS = -lm -lpthread -lmpfr -lgmp -lmicrohttpd
 
 #Compilation flags 
 
-COMPILER_FLAGS = -Wall -g
+COMPILER_FLAGS =  -Wall -g
 TARGET_FILES =  my_utils.c log.c image_gen.c server.c main.c
 
 
 OBJECT_FILES = $(TARGET_FILES:%.c=%.o)
 
 
-main.out: $(OBJECT_FILES) 
+main.out: compile 
 	$(COMPILER) $(OBJECT_FILES) $(LINKER_FLAGS) -o main.out
 
 compile:

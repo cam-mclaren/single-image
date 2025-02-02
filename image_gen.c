@@ -41,7 +41,6 @@ int worker_function(void *wrapper_arg /* void pointer to pointer to struct*/) {
   int max_iter = 4000;
   int iter_count = 0;
   mpfr_t real_component, imaginary_component, x_square, y_square, real_temp;
-  mpfr_t c_x, c_y;
   mpfr_init2(real_component, args->precision);
   mpfr_init2(imaginary_component, args->precision);
   mpfr_init2(real_temp, args->precision);
@@ -220,7 +219,6 @@ int make_image(int x_pixels, int y_pixels, int thread_count, long int precision,
   // define integer representing number of rows in image processed. Cast this as
   // a void pointer.
   int rows_processed = 0;
-  void *thread_argument = (void *)&rows_processed;
 
   // Load the coefficients and nodes for the colouring spline//
   int coefficent_number = count_doubles_in_file(
@@ -268,7 +266,6 @@ int make_image(int x_pixels, int y_pixels, int thread_count, long int precision,
 
   int thread_index;
   Thrd_awrp wrapper_arg[thread_count];
-  char *thread_int_str[20];
   char *thread_name_str[thread_count][20];
 
   for (thread_index = 0; thread_index < thread_count; thread_index++) {

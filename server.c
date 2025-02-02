@@ -121,7 +121,7 @@ int answer_to_connection(void *cls, struct MHD_Connection *connection,
   } else {
     loggf(WARN, "Unhandled method url combination\n");
     loggf(DEBUG, "Accessed %s with method %s\n", url, method);
-    MHD_get_connection_values(connection, MHD_HEADER_KIND, &print_out_key,
+    MHD_get_connection_values(connection, MHD_HEADER_KIND, (MHD_KeyValueIterator)&print_out_key,
                               NULL);
   }
 
@@ -160,7 +160,7 @@ int start_server(int *arg_length) {
 
   // Launches the daemon on another thread
   daemon = MHD_start_daemon(
-      MHD_USE_INTERNAL_POLLING_THREAD, PORT, NULL, NULL, &answer_to_connection,
+      MHD_USE_INTERNAL_POLLING_THREAD, PORT, NULL, NULL, (MHD_AccessHandlerCallback)&answer_to_connection,
       (void *)server_coms_write /* extra args for awnswer_to_connection here */,
       MHD_OPTION_END);
   if (daemon == NULL) {
@@ -270,10 +270,9 @@ int image_request(void *image_request_struct) {
 
 int stream_data(unsigned char *image_data, size_t image_data_size,
                 char *server_string, int server_port) {
-  struct sockaddr_in client_socket, server_address_socket;
+  struct sockaddr_in server_address_socket;
 
-  // setup client socket
-  client_socket.sin_family = AF_INET;
+  // setup client socket fd
   int client_socket_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (client_socket_fd == -1) {
     loggf(ERROR, "%s(): socket() returned an error creating client_socket_fd\n",
@@ -287,16 +286,6 @@ int stream_data(unsigned char *image_data, size_t image_data_size,
   server_address_socket.sin_family = AF_INET;
   server_address_socket.sin_port = htons(server_port);
   server_address_socket.sin_addr.s_addr = inet_addr(server_string);
-
-  //  // bind
-  //  int bind_status = bind(client_socket_fd, (struct sockaddr
-  //  *)&client_socket,
-  //                         sizeof(client_socket));
-  //  if (bind_status == -1) {
-  //    loggf(ERROR, "%s():bind() returned an error on client_socket_fd\n",
-  //          __func__);
-  //    return -1;
-  //  }
 
   // connect
   int connect_status =

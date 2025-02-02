@@ -47,12 +47,9 @@ int main(int argc, char **argv) {
   int opt;
   bool is_server = false;
   int array_len = 70;
-  char x_arg[array_len];
-  long unsigned int x_arg_len;
-  char y_arg[array_len];
-  long unsigned int y_arg_len;
-  char width_arg[array_len];
-  long unsigned int width_arg_len;
+  char x_arg[array_len]; memset(x_arg, 0, array_len);
+  char y_arg[array_len]; memset(y_arg, 0, array_len);
+  char width_arg[array_len]; memset(width_arg, 0, array_len); 
   while ((opt = getopt(argc, argv, ":sx:y:w:")) != -1) {
     switch (opt) {
     case 's':
