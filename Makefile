@@ -8,11 +8,14 @@ LINKER_FLAGS = -lm -lpthread -lmpfr -lgmp -lmicrohttpd
 
 #Compilation flags 
 
-COMPILER_FLAGS =  -Wall -g
+COMPILER_FLAGS =  -Wall -g -I./vendor
 TARGET_FILES =  my_utils.c log.c image_gen.c server.c main.c
 
 
 OBJECT_FILES = $(TARGET_FILES:%.c=%.o)
+
+# default image file path
+IMAGE_FILE_PATH = "image.jpg"
 
 
 main.out: compile 
@@ -25,7 +28,8 @@ runmain: main.out
 	JSON_ARGS=$$(cat centre_image_params.json); ./main.out \
 						-x $$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .x | sed -e 's/"//g' )) \
 						-y $$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .y | sed -e 's/"//g' ))\
-						-w $$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .width | sed -e 's/"//g' ))
+						-w $$(printf "%50.50s " $$(echo $$JSON_ARGS | jq .width | sed -e 's/"//g' )) \
+						-f $(IMAGE_FILE_PATH)
 
 runserver: main.out
 	gdb --args ./main.out -s

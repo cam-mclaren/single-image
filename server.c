@@ -12,8 +12,8 @@
 #define THREAD_NUMBER 8
 #define PORT 8888
 
-#include "stb_image.h"
-#include "stb_image_write.h"
+#include "vendor/stb_image.h"
+#include "vendor/stb_image_write.h"
 
 // client connection
 #include <arpa/inet.h>

@@ -5,6 +5,8 @@
 
 static int log_level = OFF;
 
+static FILE *log_file = NULL;
+
 void loggf(LOG_LEVEL level, char *msg, ...) {
   // log out message
   //
@@ -27,4 +29,21 @@ int set_log_level(LOG_LEVEL level) {
 
   log_level = level;
   return 0;
+}
+
+int set_log_file(FILE *file) {
+  log_file = file;
+  return 0;
+}
+
+void close_log_file() {
+  if (log_file != NULL && log_file != stdout) {
+    fclose(log_file);
+  }
+}
+
+// Initialize logger with default settings (INFO level, stdout)
+void init_logger() {
+  set_log_level(INFO);
+  set_log_file(stdout);
 }
