@@ -27,8 +27,8 @@
 #include <sys/time.h>
 #include <time.h>
 
-#define MY_PRECISION 665
-#define THREAD_NUMBER 8
+#define MY_PRECISION 500
+#define THREAD_NUMBER 4
 #define DEBUG_MAC printf("line: %d\n", __LINE__);
 
 int main(int argc, char **argv) {
@@ -95,8 +95,8 @@ int main(int argc, char **argv) {
   }
 
   // resolution
-  int x_pixels = 1280;
-  int y_pixels = 720;
+  int x_pixels = 640; //1280;
+  int y_pixels = 360; //720;
 
   // define image_data array
 
